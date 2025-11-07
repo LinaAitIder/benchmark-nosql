@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # ========================================
+  # 1. MONGODB - Base de données Document
+  # ========================================
+  mongodb:
+    image: mongo:7.0
+    container_name: benchmark_mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - benchmark_network
+
+  # Interface graphique pour MongoDB
+  mongo-express:
+    image: mongo-express:latest
+    container_name: benchmark_mongo_express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_USER}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_PASSWORD}
+    depends_on:
+      - mongodb
+    networks:
+      - benchmark_network
+
+  # ========================================
+  # 2. REDIS - Base de données Clé-Valeur
+  # ========================================
+  redis:
+    image: redis:7-alpine
+    container_name: benchmark_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - benchmark_network
+
+  # Interface graphique pour Redis
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: benchmark_redis_commander
+    restart: always
+    ports:
+      - "8082:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:${REDIS_PASSWORD}
+    depends_on:
+      - redis
+    networks:
+      - benchmark_network
+
+  # ========================================
+  # 3. NEO4J - Base de données Graphe
+  # ========================================
+  neo4j:
+    image: neo4j:5.13
+    container_name: benchmark_neo4j
+    restart: always
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
+      NEO4J_dbms_memory_pagecache_size: 512M
+      NEO4J_dbms_memory_heap_initial__size: 512M
+      NEO4J_dbms_memory_heap_max__size: 1G
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    networks:
+      - benchmark_network
+
+  # ========================================
+  # 4. CASSANDRA - Base de données Colonnes
+  # ========================================
+  cassandra:
+    image: cassandra:4.1
+    container_name: benchmark_cassandra
+    restart: always
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: BenchmarkCluster
+      CASSANDRA_DC: datacenter1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      MAX_HEAP_SIZE: 512M
+      HEAP_NEWSIZE: 128M
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - benchmark_network
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe cluster'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ========================================
+  # GRAFANA - Tableau de bord
+  # ========================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: benchmark_grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - benchmark_network
+
+volumes:
+  mongodb_data:
+  redis_data:
+  neo4j_data:
+  neo4j_logs:
+  cassandra_data:
+  grafana_data:
+
+networks:
+  benchmark_network:
+    driver: bridge
