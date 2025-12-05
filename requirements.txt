@@ -1,0 +1,12 @@
+# Connecteurs bases de données NoSQL
+pymongo==4.6.1              # MongoDB
+redis==5.0.1                # Redis
+neo4j==5.15.0               # Neo4j
+# cassandra-driver          # Cassandra (commenté car problèmes Python 3.12+)
+
+# Monitoring et métriques
+influxdb-client==1.38.0     # InfluxDB v2
+psutil==5.9.6               # Métriques système (CPU, RAM)
+
+# Utilitaires
+python-dotenv==1.0.0        # Variables d'environnement (.env)
