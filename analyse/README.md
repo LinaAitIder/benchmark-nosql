@@ -6,7 +6,7 @@
     |> range(start: -24h)
     |> filter(fn: (r) => r["_measurement"] == "scenario1_crud")
     |> filter(fn: (r) => r["_field"] == "latency_ms")
-    |> filter(fn: (r) => r["operation"] == "update")
+    |> filter(fn: (r) => r["operation"] == "insert")
     |> group(columns: ["database"])
     |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
     |> yield(name: "insert_latency")
